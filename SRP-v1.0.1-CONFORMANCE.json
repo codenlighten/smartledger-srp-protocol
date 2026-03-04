@@ -1,0 +1,159 @@
+{
+  "protocol": "SRP",
+  "version": "1.0.1",
+  "specDocument": "SRP-v1.0.1-SPEC.md",
+  "vectorsDocument": "srp-test-vectors.js",
+  "generatedAt": "2026-03-03T00:00:00.000Z",
+  "requirements": [
+    {
+      "id": "SRP-4-CONSTANTS",
+      "section": "4",
+      "normative": "MUST",
+      "description": "Implementation exposes protocol constants exactly as specified.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-6-CANONICALIZE",
+      "section": "6",
+      "normative": "MUST",
+      "description": "Canonicalization sorts keys recursively, preserves array order, rejects undefined/non-finite values, and enforces strict-mode constraints.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-7-RECORD-HASH",
+      "section": "7",
+      "normative": "MUST",
+      "description": "recordHash is SHA256(recordCanonical) and encoded as lowercase 64-char hex.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-8-SIGNED-DOMAIN",
+      "section": "8",
+      "normative": "MUST",
+      "description": "signedMaterialHash is SHA256('SRP-SIGNED-MATERIAL|' + signedMaterialCanonical).",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-9-DUP-SIGNER",
+      "section": "9",
+      "normative": "MUST",
+      "description": "Duplicate signatures by same pubKey for one record are rejected.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-10-VERIFY",
+      "section": "10",
+      "normative": "MUST",
+      "description": "Verification recomputes signed material hash and validates BSV message signature.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-11-ANCHOR-FORMAT",
+      "section": "11",
+      "normative": "MUST",
+      "description": "Anchor payload bytes are 'SRP' | 0x01 | 32-byte recordHash.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-12-EVIDENCE",
+      "section": "12",
+      "normative": "SHOULD",
+      "description": "Evidence bundle contains record, hashes, signed material, anchor, audit, and verification metadata.",
+      "automated": false,
+      "automatedBy": [],
+      "status": "manual-review"
+    },
+    {
+      "id": "SRP-13-MERKLE-LEAF",
+      "section": "13.1",
+      "normative": "MUST",
+      "description": "Merkle leaves are validated as 32-byte lowercase hex.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-13-MERKLE-NODE-DOMAIN",
+      "section": "13.2",
+      "normative": "MUST",
+      "description": "Merkle node hashing uses SHA256('SRP-MERKLE-NODE|' + leftBytes + rightBytes).",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-13-ODD-DUPLICATION",
+      "section": "13.2",
+      "normative": "MUST",
+      "description": "Odd node duplication is deterministic (right = left for missing pair).",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-13-PROOF-VERIFY",
+      "section": "13.5",
+      "normative": "MUST",
+      "description": "Merkle proofs verify true for valid proofs and false for tampered proofs.",
+      "automated": true,
+      "automatedBy": [
+        "srp-test-vectors.js"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-14-VECTORS",
+      "section": "14",
+      "normative": "MUST",
+      "description": "Implementation passes deterministic vectors exactly.",
+      "automated": true,
+      "automatedBy": [
+        "npm test"
+      ],
+      "status": "pass"
+    },
+    {
+      "id": "SRP-15-CROSS-RUNTIME",
+      "section": "15",
+      "normative": "MUST",
+      "description": "Node and browser implementations produce identical deterministic outputs.",
+      "automated": false,
+      "automatedBy": [],
+      "status": "manual-review"
+    }
+  ]
+}

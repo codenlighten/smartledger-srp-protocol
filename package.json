@@ -1,0 +1,22 @@
+{
+  "name": "version1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node srp-test-vectors.js",
+    "conformance": "node srp-conformance-check.js",
+    "conformance:report": "node srp-conformance-report.js",
+    "conformance:markdown": "node srp-conformance-render-md.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@smartledger/bsv": "^3.4.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  }
+}

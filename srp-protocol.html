@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Web3Keys SRP v1.0 Playground</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SmartLedger BSV Library -->
+  <script src="https://cdn.jsdelivr.net/npm/smartledger-bsv@3.3.5/bsv.min.js"></script>
+  <script src="./srp-core.js"></script>
+  <style>
+    body { background: #f8fafc; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-900">
+  <div class="max-w-6xl mx-auto p-4 md:p-8 space-y-4">
+    <header class="card p-5">
+      <h1 class="text-2xl font-bold">SRP v1.0 — Signed Record Protocol Playground</h1>
+      <p class="text-slate-600 mt-1">Deterministic canonicalization, detached signatures, minimal BSV anchor payload, and evidence-bundle export.</p>
+      <div id="status" class="hidden mt-3 text-sm p-3 rounded border"></div>
+    </header>
+
+    <section class="card p-5 space-y-3">
+      <h2 class="font-semibold text-lg">Signer Identity</h2>
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">WIF (leave blank to generate)</label>
+          <textarea id="wif" rows="3" class="w-full border rounded p-2 mono text-sm" placeholder="Kx... or L..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Public Key (derived)</label>
+          <textarea id="pubkey" rows="3" class="w-full border rounded p-2 mono text-sm" readonly></textarea>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="gen-key" class="px-3 py-2 rounded bg-slate-800 text-white">Generate Keypair</button>
+        <button id="derive-pub" class="px-3 py-2 rounded bg-slate-700 text-white">Derive Public Key from WIF</button>
+      </div>
+    </section>
+
+    <section class="card p-5 space-y-3">
+      <h2 class="font-semibold text-lg">SRP Record</h2>
+      <div class="grid md:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Version</label>
+          <input id="version" class="w-full border rounded p-2" value="1.0" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Record Type</label>
+          <input id="recordType" class="w-full border rounded p-2" value="contract" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Created At (UTC)</label>
+          <input id="createdAt" class="w-full border rounded p-2 mono" />
+        </div>
+      </div>
+
+      <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+        <input id="strictMode" type="checkbox" class="rounded" />
+        SRP strict mode (reject null / empty strings / empty arrays in payload)
+      </label>
+
+      <div>
+        <label class="block text-sm text-slate-600 mb-1">Payload JSON</label>
+        <textarea id="payload" rows="8" class="w-full border rounded p-2 mono text-sm">{
+  "title": "Master Services Agreement",
+  "partyA": "Acme Corp",
+  "partyB": "Beta LLC",
+  "effectiveDate": "2026-03-03",
+  "jurisdiction": "Delaware"
+}</textarea>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Record ID</label>
+          <input id="recordId" class="w-full border rounded p-2 mono" placeholder="deterministic id" />
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Record Hash (SHA256)</label>
+          <input id="recordHash" class="w-full border rounded p-2 mono" readonly />
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button id="gen-record-id" class="px-3 py-2 rounded bg-blue-700 text-white">1) Generate Record ID</button>
+        <button id="canonicalize" class="px-3 py-2 rounded bg-indigo-700 text-white">2) Canonicalize + Hash</button>
+        <button id="sign-hash" class="px-3 py-2 rounded bg-emerald-700 text-white">3) Sign Record Hash</button>
+        <button id="verify-sig" class="px-3 py-2 rounded bg-teal-700 text-white">4) Verify Signature</button>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Canonical Record (without signatures)</label>
+          <textarea id="canonicalOut" rows="10" class="w-full border rounded p-2 mono text-xs" readonly></textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Record (with signatures)</label>
+          <textarea id="recordOut" rows="10" class="w-full border rounded p-2 mono text-xs" readonly></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="card p-5 space-y-3">
+      <h2 class="font-semibold text-lg">Anchor + Evidence</h2>
+      <p class="text-sm text-slate-600">UI legal intent confirmation text (display before sign):</p>
+      <div id="intentText" class="p-3 rounded bg-amber-50 border border-amber-200 text-amber-900 text-sm"></div>
+
+      <div class="grid md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Anchor Payload (hex)</label>
+          <textarea id="anchorHex" rows="4" class="w-full border rounded p-2 mono text-xs" readonly></textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-slate-600 mb-1">Verification Result</label>
+          <div id="verifyResult" class="p-3 rounded border bg-slate-50">Not verified yet.</div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <button id="build-anchor" class="px-3 py-2 rounded bg-violet-700 text-white">5) Build Anchor Payload</button>
+        <button id="export-evidence" class="px-3 py-2 rounded bg-slate-900 text-white">6) Export Evidence Bundle JSON</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const LEGAL_INTENT = SRP.DEFAULT_INTENT;
+
+    let currentRecord = null;
+    let currentCanonical = "";
+    let currentHash = "";
+    let currentSignableHash = "";
+    let currentSignableCanonical = "";
+    let lastVerification = null;
+
+    function setStatus(message, ok = true) {
+      const el = $("status");
+      el.textContent = message;
+      el.className = "mt-3 text-sm p-3 rounded border " + (ok ? "bg-green-50 text-green-800 border-green-200" : "bg-red-50 text-red-800 border-red-200");
+      el.classList.remove("hidden");
+    }
+
+    const sortKeysDeep = (value, opts = {}) => SRP.sortKeysDeep(value, opts);
+    const derivePubFromWif = (wif) => SRP.derivePubFromWif(wif);
+
+    function buildRecordInput() {
+      const version = $("version").value.trim() || "1.0";
+      const recordType = $("recordType").value.trim();
+      const recordId = $("recordId").value.trim();
+      const createdAt = SRP.normalizeIso($("createdAt").value.trim());
+      const payload = JSON.parse($("payload").value);
+      const strict = $("strictMode").checked;
+
+      return SRP.buildRecordInput({ version, recordType, recordId, createdAt, payload, strict });
+    }
+
+    function computeCanonicalAndHash() {
+      const rec = buildRecordInput();
+      const strict = $("strictMode").checked;
+      const state = SRP.computeRecordState({
+        ...rec,
+        strict,
+        intent: LEGAL_INTENT,
+        signatureScheme: SRP.DEFAULT_SIGNATURE_SCHEME,
+        existingSignatures: currentRecord?.signatures || []
+      });
+      currentCanonical = state.recordCanonical;
+      currentHash = state.recordHash;
+      currentRecord = state.record;
+      currentSignableCanonical = state.signedMaterial.canonical;
+      currentSignableHash = state.signedMaterial.hash;
+
+      $("canonicalOut").value = currentCanonical;
+      $("recordHash").value = currentHash;
+      $("recordOut").value = JSON.stringify(sortKeysDeep(currentRecord), null, 2);
+      setStatus("Record canonicalized, hashed, and signable digest prepared.");
+    }
+
+    function generateRecordId() {
+      const base = buildRecordInput();
+      const strict = $("strictMode").checked;
+      $("recordId").value = SRP.generateRecordId({
+        version: base.version,
+        recordType: base.recordType,
+        createdAt: base.createdAt,
+        payload: base.payload,
+        strict,
+        includeCreatedAt: true
+      });
+      setStatus("Deterministic recordId generated.");
+    }
+
+    function ensureHashReady() {
+      if (!currentHash) computeCanonicalAndHash();
+    }
+
+    function signRecordHash() {
+      ensureHashReady();
+      const wif = $("wif").value.trim();
+      if (!wif) throw new Error("WIF is required to sign.");
+
+      const result = SRP.appendSignature(currentRecord, wif, {
+        intent: LEGAL_INTENT,
+        signatureScheme: SRP.DEFAULT_SIGNATURE_SCHEME,
+        canonical: currentSignableCanonical,
+        hash: currentSignableHash
+      });
+
+      currentRecord = result.record;
+      $("pubkey").value = result.pubKey;
+      $("recordOut").value = JSON.stringify(sortKeysDeep(currentRecord), null, 2);
+      setStatus("Detached signature appended to record.");
+    }
+
+    function verifyLatestSignature() {
+      if (!currentRecord?.signatures?.length) throw new Error("No signatures found.");
+      ensureHashReady();
+
+      const sigObj = currentRecord.signatures[currentRecord.signatures.length - 1];
+      lastVerification = SRP.verifySignature(sigObj, currentSignableHash);
+
+      const vr = $("verifyResult");
+      vr.textContent = lastVerification.ok ? "✅ Signature valid for current recordHash." : "❌ Signature invalid for current recordHash.";
+      vr.className = "p-3 rounded border " + (lastVerification.ok ? "bg-green-50 text-green-900 border-green-200" : "bg-red-50 text-red-900 border-red-200");
+      setStatus("Signature verification complete.", lastVerification.ok);
+    }
+
+    function buildAnchorHex() {
+      ensureHashReady();
+      $("anchorHex").value = SRP.buildAnchorPayloadHex(currentHash, "SRP", 0x01);
+      setStatus("Anchor payload built (protocolId|version|recordHash).");
+    }
+
+    function exportEvidenceBundle() {
+      if (!currentRecord) throw new Error("Create and hash a record first.");
+      buildAnchorHex();
+
+      const evidence = SRP.buildEvidenceBundle({
+        record: currentRecord,
+        recordHash: currentHash,
+        recordCanonical: currentCanonical,
+        hashAlgorithm: SRP.HASH_ALGORITHM,
+        signedMaterial: {
+          intent: LEGAL_INTENT,
+          signatureScheme: SRP.DEFAULT_SIGNATURE_SCHEME,
+          hashAlgorithm: SRP.HASH_ALGORITHM,
+          hashDomain: SRP.SIGNED_MATERIAL_DOMAIN,
+          canonical: currentSignableCanonical,
+          hash: currentSignableHash
+        },
+        anchorPayloadHex: $("anchorHex").value,
+        network: "mainnet",
+        userAgent: navigator.userAgent,
+        emailVerified: false,
+        verification: lastVerification
+      });
+
+      const json = JSON.stringify(sortKeysDeep(evidence), null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `srp-evidence-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus("Evidence bundle exported.");
+    }
+
+    function generateKeypair() {
+      const priv = bsv.PrivateKey.fromRandom();
+      $("wif").value = priv.toWIF();
+      $("pubkey").value = priv.toPublicKey().toString("hex");
+      setStatus("New secp256k1 keypair generated.");
+    }
+
+    function derivePub() {
+      const wif = $("wif").value.trim();
+      if (!wif) throw new Error("Enter a WIF first.");
+      $("pubkey").value = derivePubFromWif(wif);
+      setStatus("Public key derived from WIF.");
+    }
+
+    function wire() {
+      $("createdAt").value = new Date().toISOString();
+      $("intentText").textContent = LEGAL_INTENT;
+      $("strictMode").checked = true;
+
+      $("gen-key").onclick = () => { try { generateKeypair(); } catch (e) { setStatus(e.message, false); } };
+      $("derive-pub").onclick = () => { try { derivePub(); } catch (e) { setStatus(e.message, false); } };
+      $("gen-record-id").onclick = () => { try { generateRecordId(); } catch (e) { setStatus(e.message, false); } };
+      $("canonicalize").onclick = () => { try { computeCanonicalAndHash(); } catch (e) { setStatus(e.message, false); } };
+      $("sign-hash").onclick = () => { try { signRecordHash(); } catch (e) { setStatus(e.message, false); } };
+      $("verify-sig").onclick = () => { try { verifyLatestSignature(); } catch (e) { setStatus(e.message, false); } };
+      $("build-anchor").onclick = () => { try { buildAnchorHex(); } catch (e) { setStatus(e.message, false); } };
+      $("export-evidence").onclick = () => { try { exportEvidenceBundle(); } catch (e) { setStatus(e.message, false); } };
+    }
+
+    //upon page load, we generate uuid for recordId and set createdAt to now, to encourage users to follow the flow (id and createdAt should be generated before canonicalization/signing)
+    document.addEventListener("DOMContentLoaded", () => {
+      $("recordId").value = crypto.randomUUID();
+      $("createdAt").value = new Date().toISOString();
+      wire();
+    });
+  </script>
+</body>
+</html>
