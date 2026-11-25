@@ -1,5 +1,7 @@
 # SmartLedger SRP Protocol
 
+> **Status: experimental.** Claims in this README about scale, speed, security or readiness are design goals or earlier drafts unless they point to a test, measurement or audit report. No independent audit is claimed.
+
 **Signed Record Protocol (SRP) v1.0.1**
 
 Deterministic, domain-separated, legally defensible digital record infrastructure with scalable Merkle batch anchoring.
