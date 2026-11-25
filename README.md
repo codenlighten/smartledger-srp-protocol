@@ -4,7 +4,7 @@
 
 **Signed Record Protocol (SRP) v1.0.1**
 
-Deterministic, domain-separated, legally defensible digital record infrastructure with scalable Merkle batch anchoring.
+Deterministic, domain-separated digital record infrastructure with Merkle batch anchoring.
 
 ---
 
